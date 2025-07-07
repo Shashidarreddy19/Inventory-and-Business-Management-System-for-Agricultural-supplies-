@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expiring Soon</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="./css/new-navigation.css">
+    <link rel="stylesheet" href="./css/expiring-soon.css">
+</head>
+
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="index.html" class="brand">
+                <span class="brand-text">Fertilizer<span>Manager</span></span>
+            </a>
+            <div class="nav-links">
+                <a href="afterlogindashboard.html" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="total-stock.html" class="nav-link">
+                    <i class="fas fa-boxes"></i> TotalStock
+                </a>
+                <a href="low-stock-alerts.html" class="nav-link">
+                    <i class="fas fa-exclamation-triangle"></i> LowStock
+                </a>
+                <a href="expiring-soon.html" class="nav-link active">
+                    <i class="fas fa-clock"></i> ExpiringSoon
+                </a>
+                <a href="suppliers.html" class="nav-link">
+                    <i class="fas fa-truck"></i> Suppliers
+                </a>
+                <a href="order-history.html" class="nav-link">
+                    <i class="fas fa-history"></i> OrderHistory
+                </a>
+                <a href="customers.html" class="nav-link">
+                    <i class="fas fa-users"></i> Customers
+                </a>
+                <a href="sales.html" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i> Sales
+                </a>
+                <a href="credit.html" class="nav-link">
+                    <i class="fas fa-credit-card"></i> Credit
+                </a>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="header-section">
+            <h1>Expiring Soon</h1>
+            <div class="header-actions">
+                <button class="back-button" onclick="window.location.href='afterlogindashboard.html'">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Dashboard
+                </button>
+                <button class="refresh-button" onclick="fetchExpiringSoonProducts()">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh List
+                </button>
+            </div>
+        </div>
+
+        <div id="alerts-container">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading products...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = 'loginpage.html';
+                return;
+            }
+            fetchExpiringSoonProducts();
+        });
+
+        // Fetch expiring soon products
+        async function fetchExpiringSoonProducts() {
+            const alertsContainer = document.getElementById('alerts-container');
+            alertsContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading products...</div>';
+
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = 'loginpage.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3001/api/stock/expiring-soon?userId=${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch expiring products');
+                }
+
+                const data = await response.json();
+                console.log('Received data:', data); // Debug log
+                renderExpiringSoonProducts(data);
+            } catch (error) {
+                console.error('Error fetching expiring soon products:', error);
+                alertsContainer.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        ${error.message || 'An error occurred while fetching products. Please try again.'}
+                    </div>
+                `;
+            }
+        }
+
+        // Render expiring soon products
+        function renderExpiringSoonProducts(products) {
+            const alertsContainer = document.getElementById('alerts-container');
+            alertsContainer.innerHTML = '';
+
+            if (!Array.isArray(products) || products.length === 0) {
+                alertsContainer.innerHTML = `
+                    <div class="alert normal">
+                        <div class="alert-content">
+                            <h3><i class="fas fa-check-circle"></i> No products expiring soon!</h3>
+                            <p class="alert-message">All products are within their expiry dates.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            products.forEach(product => {
+                if (!product || typeof product !== 'object') {
+                    console.warn('Invalid product data:', product);
+                    return;
+                }
+
+                const daysUntilExpiry = product.days_until_expiry;
+                
+                let severityClass = 'normal';
+                let severityIcon = 'info-circle';
+                let message = '';
+                
+                if (daysUntilExpiry <= 7) {
+                    severityClass = 'critical';
+                    severityIcon = 'exclamation-circle';
+                    message = daysUntilExpiry <= 0 ? 
+                        'Product has expired!' : 
+                        `Expires in ${daysUntilExpiry} days`;
+                } else if (daysUntilExpiry <= 30) {
+                    severityClass = 'warning';
+                    severityIcon = 'exclamation-triangle';
+                    message = `Expires in ${daysUntilExpiry} days`;
+                } else {
+                    message = `Expires in ${daysUntilExpiry} days`;
+                }
+
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert';
+                alertDiv.classList.add(severityClass);
+
+                alertDiv.innerHTML = `
+                    <div class="alert-content">
+                        <h3>
+                            <i class="fas fa-${severityIcon}"></i>
+                            ${message}
+                        </h3>
+                        <div class="product-name-row">
+                            <span class="label">Product Name:</span>
+                            <span class="value">${product.product_name || 'Unknown Product'}</span>
+                        </div>
+                        <div class="alert-details">
+                            <p>
+                                <span>Category:</span>
+                                <span>${product.category || 'N/A'}</span>
+                            </p>
+                            <p>
+                                <span>Supplier:</span>
+                                <span>${product.supplier_name || 'N/A'}</span>
+                            </p>
+                            <p>
+                                <span>Quantity:</span>
+                                <span class="quantity">${product.quantity} ${product.quantity_unit}</span>
+                            </p>
+                            <p>
+                                <span>Number of Items:</span>
+                                <span>${product.number_of_items}</span>
+                            </p>
+                            <p>
+                                <span>Expiry Date:</span>
+                                <span class="expiry-date ${severityClass}">
+                                    ${new Date(product.expiry_date).toLocaleDateString()}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                `;
+                alertsContainer.appendChild(alertDiv);
+            });
+        }
+
+        // Add this CSS to the head
+        const style = document.createElement('style');
+        style.textContent = `
+            .product-name-row {
+                padding: 10px 0;
+                margin: 10px 0;
+                border-bottom: 1px solid #eee;
+            }
+            .product-name-row .label {
+                font-weight: 500;
+                color: #333;
+                margin-right: 10px;
+            }
+            .product-name-row .value {
+                font-weight: 600;
+                color: #000;
+            }
+            .expiry-date.critical {
+                color: #dc3545;
+                font-weight: bold;
+            }
+            .expiry-date.warning {
+                color: #ffc107;
+                font-weight: bold;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initial fetch
+        fetchExpiringSoonProducts();
+    </script>
+</body>
+
+</html>
