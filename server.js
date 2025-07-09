@@ -18,7 +18,8 @@ const creditRoutes = require('./backend/routes/creditRoutes');
 const db = require('./backend/config/db');
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
+
 
 // Middleware
 app.use(bodyParser.json());
@@ -26,11 +27,18 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Updated CORS configuration
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://127.0.0.1:3001', 'http://localhost:5500', 'http://127.0.0.1:5500'],
+    origin: [
+        'http://localhost:3001',
+        'http://127.0.0.1:3001',
+        'http://localhost:5500',
+        'http://127.0.0.1:5500',
+        'https://your-app-name.up.railway.app' // ✅ ADD THIS after deployment
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'userId'],
     credentials: true
 }));
+
 
 // File upload middleware with error handling
 app.use(fileUpload({

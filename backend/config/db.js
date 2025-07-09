@@ -1,13 +1,13 @@
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
-dotenv.config();
+dotenv.config({ path: __dirname + '/.env' });
 
 // Create the connection pool with enhanced settings
 const pool = mysql.createPool({
-    host: 'localhost', 
-    user: 'root',
-    password: 'root',
-    database: 'fertilizer_inventory',
+    host: process.env.DB_HOST, 
+    user: process.env.DB_USER, // <-- corrected line
+    password: process.env.DB_PASSWORD, // <-- use env variable for password
+    database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
